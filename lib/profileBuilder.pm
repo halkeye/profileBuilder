@@ -6,13 +6,22 @@ our $VERSION = '0.1';
 use Net::OpenID::Consumer;
 use LWPx::ParanoidAgent;
 use Cache::File;
+use Data::GUID;
 
 sub getConsumer
 {
     my ($params) = @_;
+    my $cache = Cache::File->new( cache_root => '/tmp/openid');
+    my $secret = $cache->get('openidSecret');
+    if (!defined $secret)
+    {
+        $secret = Data::GUID->new->as_string();
+        $cache->set('openidSecret', $secret);
+    }
+
     my $csr = Net::OpenID::Consumer->new(
         ua    => LWPx::ParanoidAgent->new,
-        cache => Cache::File->new( cache_root => '/tmp/openid') ,
+        cache => $cache,
         args => \%{params()},# $params,
         consumer_secret => "abc123",
         #required_root => "http://localhost/",
@@ -21,12 +30,10 @@ sub getConsumer
     return $csr;
 }
 
-get '/' => sub {
+my $main = get '/' => sub {
     template 'index';
-};
-
-get 'main' => sub {
-    template 'index';
+    my $email = session('openid_email');
+    return redirect('/auth/openid/google') unless $email;
 };
 
 get '/auth/openid/return' => sub {
@@ -47,8 +54,7 @@ get '/auth/openid/return' => sub {
         verified => sub {
             my $vident = shift;
             # Do something with the VerifiedIdentity object $vident
-            template 'cancel';
-            print "Hey there sucka";
+            $main->();
         },
         error => sub {
             my ($err,$txt) = shift;
