@@ -1,5 +1,5 @@
 <h2>It Works!</h2>
 
 <p>
-I'm in <code>/home/halkeye/Documents/profileBuilder/profileBuilder/views/index.tt</code>
+My Email is: <b><% email %><b>
 </p>
